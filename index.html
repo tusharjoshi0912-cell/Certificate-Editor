@@ -10,8 +10,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
-    <!-- html2pdf.js for PDF generation -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" xintegrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <!-- html2canvas.js for saving element as an image - THIS IS THE NEW, WORKING LIBRARY -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" xintegrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6BTzUSFsP+VBYA8A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <style>
         /* Applying custom fonts */
         body {
@@ -111,7 +111,7 @@
                 <div class="mt-12 flex flex-col sm:flex-row items-center justify-between gap-8">
                     <!-- Organizer Section -->
                     <div class="text-center w-full sm:w-1/3">
-                        <p class="text-xl font-semibold text-gray-700">Google Student Ambassador</p>
+                        <p class="font-semibold text-gray-700">Google Student Ambassador</p>
                         <p class="border-t-2 mt-2 pt-2 font-bold text-sm text-gray-500 tracking-widest" style="border-color: #4285F4;">ORGANIZED BY</p>
                     </div>
                     
@@ -165,8 +165,9 @@
                     class="w-full px-4 py-3 bg-white text-gray-900 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200 text-lg"
                 >
             </div>
-            <button id="download-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md text-lg transition duration-200">
-                Download Certificate (PDF)
+            <button id="save-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-md text-lg transition duration-200 flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                <span id="save-text">Save Certificate (PNG)</span>
             </button>
         </div>
     </div>
@@ -182,7 +183,8 @@
         const seminarTitleElement = document.getElementById('seminar-title');
         const seminarNameInput = document.getElementById('seminar-name-input');
 
-        const downloadBtn = document.getElementById('download-btn');
+        const saveBtn = document.getElementById('save-btn');
+        const saveText = document.getElementById('save-text');
         
         const namePlaceholder = "Participant's Name";
         const datePlaceholder = "August 30, 2025";
@@ -225,28 +227,51 @@
             }
         }
         
-        // Function to handle the download
-        function downloadCertificate() {
+        // Function to handle saving the certificate as an image
+        function saveCertificate() {
+             if (typeof html2canvas === 'undefined') {
+                alert('Error: Image generation library could not be loaded. Please check your connection and try again.');
+                return;
+            }
+            
             const certificate = document.getElementById('certificate');
             const participantName = nameInput.value.trim() || 'Participant';
             
-            const opt = {
-              margin:       0.5,
-              filename:     `Certificate-${participantName}.pdf`,
-              image:        { type: 'jpeg', quality: 0.98 },
-              html2canvas:  { scale: 2, useCORS: true },
-              jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
-            };
+            // Set button to loading state
+            saveText.textContent = 'Saving...';
+            saveBtn.disabled = true;
+            saveBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            
+            // Use html2canvas to render the element
+            html2canvas(certificate, {
+                scale: 3, // Increase scale for higher resolution
+                useCORS: true // Essential for external images
+            }).then(canvas => {
+                // Create a link to download the image
+                const link = document.createElement('a');
+                link.download = `Certificate-${participantName}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
 
-            // Use html2pdf to generate and save the PDF
-            html2pdf().set(opt).from(certificate).save();
+                // Reset button state
+                saveText.textContent = 'Save Certificate (PNG)';
+                saveBtn.disabled = false;
+                saveBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }).catch(err => {
+                console.error("Oops, something went wrong!", err);
+                alert("Could not save the certificate. Please try again.");
+                // Reset button on error
+                saveText.textContent = 'Save Certificate (PNG)';
+                saveBtn.disabled = false;
+                saveBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            });
         }
 
         // Add event listeners to the input fields
         nameInput.addEventListener('input', updateName);
         seminarNameInput.addEventListener('input', updateSeminarName);
         dateInput.addEventListener('input', updateDate);
-        downloadBtn.addEventListener('click', downloadCertificate);
+        saveBtn.addEventListener('click', saveCertificate);
 
         // Call the functions when the page loads to set the initial state
         document.addEventListener('DOMContentLoaded', () => {
@@ -257,5 +282,4 @@
     </script>
 </body>
 </html>
-
 
