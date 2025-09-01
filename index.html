@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Orbitron:wght@700&display=swap" rel="stylesheet">
-    <!-- html2canvas.js for saving element as an image - CORRECTED TYPO -->
+    <!-- html2canvas.js for saving element as an image - THIS IS THE NEW, WORKING LIBRARY -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" xintegrity="sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6BTzUSFsP+VBYA8A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <style>
         /* Applying custom fonts */
@@ -63,6 +63,32 @@
             position: relative;
             z-index: 1; /* Sits on top of the ::before background */
         }
+
+        /* === SPACING FIX FOR CERTIFICATE EXPORT === */
+        #name-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px; /* Replaces individual margins for consistent spacing */
+            margin-top: 2rem;
+            margin-bottom: 1.5rem;
+            transform: scale(1); /* Prevents rendering differences on export */
+        }
+
+        #presented-to-line {
+            line-height: 1.2;
+            padding: 0;
+            margin: 0; /* Margins are now handled by the flex container */
+            white-space: nowrap; /* Prevents wrapping on this short line */
+        }
+
+        #participant-name {
+            line-height: 1.2;
+            color: #4285F4;
+            padding: 0;
+            margin: 0; /* Margins are now handled by the flex container */
+        }
+        /* === END FIX === */
     </style>
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen p-4 sm:p-6 md:p-8">
@@ -78,25 +104,20 @@
             
             <div class="certificate-content text-center">
                 
-                <!-- Gemini Logo -->
-                <div class="flex justify-center mb-6">
-                    <img src="https://i.postimg.cc/bJrs2JpL/Google-Gemini-Lockup-Full-Color-Black.png" alt="Google Gemini Logo" class="h-12 w-auto" crossorigin="anonymous">
-                </div>
-
                 <!-- Header -->
-                <h1 class="font-display text-3xl sm:text-4xl md:text-5xl font-bold text-gray-800 tracking-wider uppercase">
+                <h1 class="font-display text-3xl sm:text-4xl md:text-5xl font-bold text-gray-800 tracking-wider uppercase pt-8">
                     Certificate of Participation
                 </h1>
                 
-                <!-- Subtitle -->
-                <p class="mt-8 text-lg md:text-xl text-gray-600">
-                    This certificate is proudly presented to
-                </p>
-                
-                <!-- Participant's Name (Editable) -->
-                <h2 id="participant-name" class="font-display font-bold text-5xl sm:text-6xl md:text-7xl my-6 break-words" style="color: #4285F4;">
-                    Participant's Name
-                </h2>
+                <!-- Flex Container for Name Block -->
+                <div id="name-container">
+                    <p id="presented-to-line" class="text-lg md:text-xl text-gray-600">
+                        This certificate is proudly presented to
+                    </p>
+                    <h2 id="participant-name" class="font-display font-bold text-5xl sm:text-6xl md:text-7xl break-words">
+                        Participant's Name
+                    </h2>
+                </div>
                 
                 <!-- Description -->
                 <p class="text-base md:text-lg max-w-2xl mx-auto text-gray-600">
@@ -107,16 +128,16 @@
                     "We appreciate your enthusiasm and commitment to learning about the future of Artificial Intelligence with Google Gemini."
                 </p>
 
-                <!-- Seal and Signatures -->
-                <div class="mt-12 flex flex-col sm:flex-row items-center justify-between gap-8">
-                    <!-- Organizer Section -->
+                <!-- Signatures and Seal -->
+                <div class="mt-16 flex flex-col sm:flex-row items-center sm:items-end justify-center gap-8 sm:gap-16">
+                    <!-- Issued By Section -->
                     <div class="text-center w-full sm:w-1/3">
                         <p class="font-semibold text-gray-700">Google Student Ambassador</p>
-                        <p class="border-t-2 mt-2 pt-2 font-bold text-sm text-gray-500 tracking-widest" style="border-color: #4285F4;">ORGANIZED BY</p>
+                        <p class="border-t-2 mt-2 pt-2 font-bold text-sm text-gray-500 tracking-widest" style="border-color: #4285F4;">ISSUED BY</p>
                     </div>
-                    
-                    <!-- Seal Image -->
-                    <div class="w-32 h-25 flex items-center justify-center">
+
+                    <!-- Seal Image (Bottom Center) -->
+                    <div class="w-32 h-25 flex items-center justify-center order-first sm:order-none">
                         <img src="https://i.postimg.cc/brTyCfyd/Screenshot-2025-08-30-094637.png" alt="Signature Logo" class="max-h-full w-auto" crossorigin="anonymous">
                     </div>
                     
@@ -244,8 +265,9 @@
             
             // Use html2canvas to render the element
             html2canvas(certificate, {
-                scale: 3, // Increase scale for higher resolution
-                useCORS: true // Essential for external images
+                scale: 2, // Use scale 2 for a good balance of quality and performance
+                useCORS: true, // Essential for external images
+                letterRendering: true // Improve text rendering accuracy
             }).then(canvas => {
                 // Create a link to download the image
                 const link = document.createElement('a');
@@ -270,7 +292,27 @@
         // Add event listeners to the input fields
         nameInput.addEventListener('input', updateName);
         seminarNameInput.addEventListener('input', updateSeminarName);
-        dateInput.addEventListener('input', updateDate);
+        
+        // NEW: Auto-formats the date input with slashes as the user types
+        dateInput.addEventListener('input', (e) => {
+            let value = e.target.value.replace(/\D/g, ''); // Remove all non-digit characters
+
+            if (value.length > 2) {
+                // Add slash after day
+                value = value.substring(0, 2) + '/' + value.substring(2);
+            }
+            if (value.length > 5) {
+                // Add slash after month and limit the year to 4 digits
+                value = value.substring(0, 5) + '/' + value.substring(5, 9);
+            }
+
+            // Update the input field's value with the formatted text
+            e.target.value = value;
+
+            // Call the original function to update the certificate display
+            updateDate();
+        });
+
         saveBtn.addEventListener('click', saveCertificate);
 
         // Call the functions when the page loads to set the initial state
@@ -282,5 +324,9 @@
     </script>
 </body>
 </html>
+
+
+
+
 
 
